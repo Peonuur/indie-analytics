@@ -1,0 +1,39 @@
+# === PYTHON ===
+# Скомпилированные файлы .pyc и кэш __pycache__
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Виртуальное окружение (огромная папка с бинарниками)
+.venv/
+venv/
+env/
+
+# Дистрибутивы
+build/
+dist/
+*.egg-info/
+*.egg
+
+# === DOCKER & ENV ===
+# Файл с паролями (НИКОГДА не коммить!)
+.env
+
+# Файлы Docker Compose (опционально, но лучше коммить конфиг, а пароли выносить в .env)
+# docker-compose.override.yml
+
+# === OS ===
+# Мусор от операционных систем
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# === LOGS ===
+# Логи, которые постоянно меняются
+*.log
+logs/

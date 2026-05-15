@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg: #0b0f19; --card: #151b2b; --text: #e2e8f0; --accent: #38bdf8; --green: #4ade80; }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .status { padding: 6px 12px; border-radius: 6px; background: var(--card); font-size: 0.9rem; }
+        .live { color: var(--green); animation: blink 1.5s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .card { background: var(--card); padding: 15px; border-radius: 10px; }
+        .log { max-height: 200px; overflow-y: auto; background: #0f1524; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; }
+        .log-entry { padding: 4px 0; border-bottom: 1px solid #1e293b; }
+        button { background: var(--accent); color: #0b0f19; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1> Indie Analytics</h1>
+            <div class="status">Статус: <span id="conn">🔴 Отключено</span></div>
+        </div>
+        <div class="grid">
+            <div class="card"><canvas id="typeChart"></canvas></div>
+            <div class="card"><canvas id="activityChart"></canvas></div>
+            <div class="card" style="grid-column: 1 / -1;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <h3>📜 Лента событий</h3>
+                    <button onclick="loadMetrics()">🔄 Обновить</button>
+                </div>
+                <div class="log" id="log"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const WS_URL = `ws://${location.host}/ws`;
+        const API_URL = `/api/v1`;
+        let ws, typeChart, actChart;
+        const typeCounts = {}, timeCounts = {};
+        const logEl = document.getElementById('log');
+
+        function connect() {
+            ws = new WebSocket(WS_URL);
+            ws.onopen = () => document.getElementById('conn').innerHTML = '🟢 Live';
+            ws.onmessage = (e) => handleEvent(JSON.parse(e.data));
+            ws.onclose = () => {
+                document.getElementById('conn').innerHTML = '🔴 Переподключение...';
+                setTimeout(connect, 2000);
+            };
+        }
+
+        function handleEvent(m) {
+            const row = document.createElement('div');
+            row.className = 'log-entry';
+            row.textContent = `[${new Date(m.created_at).toLocaleTimeString()}] ${m.game_id} :: ${m.event_type}`;
+            logEl.prepend(row);
+            if (logEl.children.length > 50) logEl.lastChild.remove();
+
+            typeCounts[m.event_type] = (typeCounts[m.event_type] || 0) + 1;
+            const t = new Date(m.created_at).toLocaleTimeString().slice(0,5);
+            timeCounts[t] = (timeCounts[t] || 0) + 1;
+            renderCharts();
+        }
+
+        function renderCharts() {
+            if (!typeChart) {
+                typeChart = new Chart(document.getElementById('typeChart'), {
+                    type: 'doughnut',
+                    data: { labels: [], datasets: [{ data: [], backgroundColor: ['#38bdf8','#818cf8','#c084fc','#f472b6','#fb923c'] }] },
+                    options: { responsive: true, plugins: { legend: { position: 'right' } } }
+                });
+                actChart = new Chart(document.getElementById('activityChart'), {
+                    type: 'line',
+                    data: { labels: [], datasets: [{ label: 'Событий', data: [], borderColor: '#38bdf8', tension: 0.3 }] },
+                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                });
+            }
+            typeChart.data.labels = Object.keys(typeCounts);
+            typeChart.data.datasets[0].data = Object.values(typeCounts);
+            typeChart.update();
+
+            actChart.data.labels = Object.keys(timeCounts).sort();
+            actChart.data.datasets[0].data = Object.keys(timeCounts).sort().map(k => timeCounts[k]);
+            actChart.update();
+        }
+
+        async function loadMetrics() {
+            const res = await fetch(`${API_URL}/metrics?limit=20`);
+            const data = await res.json();
+            data.forEach(handleEvent);
+        }
+
+        connect();
+        loadMetrics();
+    </script>
+</body>
+</html>

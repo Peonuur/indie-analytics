@@ -1,0 +1,7 @@
+{
+  "api_url": "http://localhost:8000/api/v1/metrics",
+  "game_id": "my_indie_game",
+  "auto_send": true,
+  "batch_size": 10,
+  "flush_interval_sec": 5
+}
