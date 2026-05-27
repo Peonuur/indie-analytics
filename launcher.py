@@ -60,6 +60,11 @@ def start_services():
     log(" Лаунчер работает. Закрой это окно, чтобы остановить сервисы.")
     log("💡 Для остановки вручную: docker compose down")
 
+    log("Запуск харвестера метрик...")
+    harvester_proc = subprocess.Popen(
+        [sys.executable, "harvester.py", "harvester_config.json"],
+        cwd=os.path.dirname(os.path.abspath(__file__))
+    )
     # Держим процесс живым (чтобы пользователь видел статус)
     try:
         while True:
