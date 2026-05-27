@@ -53,6 +53,7 @@ async def submit_metric(metric: MetricInput, db: AsyncSession = Depends(get_db))
     broadcast_payload = {
         "id": db_metric.id,
         "game_id": db_metric.game_id,
+        "player_id": db_metric.player_id,
         "event_type": db_metric.event_type,
         "payload": db_metric.payload,
         "created_at": db_metric.created_at.isoformat()
@@ -71,9 +72,14 @@ async def get_metrics(limit: int = 100, game_id: Optional[str] = None, db: Async
         query = query.where(GameMetric.game_id == game_id)
     result = await db.execute(query)
     return [
-        {"id": m.id, "game_id": m.game_id, "player_id": m.player_id, 
-         "event_type": m.event_type, "payload": m.payload, 
-         "created_at": m.created_at.isoformat()}
+        {
+            "id": m.id,
+            "game_id": m.game_id,
+            "player_id": m.player_id,
+            "event_type": m.event_type,
+            "payload": m.payload,
+            "created_at": m.created_at.isoformat()
+        }
         for m in result.scalars().all()
     ]
 
